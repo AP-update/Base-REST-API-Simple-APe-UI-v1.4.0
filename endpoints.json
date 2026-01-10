@@ -1,0 +1,37 @@
+{
+  "AI": [
+    {
+      "name": "Chat AI",
+      "desc": "Tanya jawab dengan asisten pintar.",
+      "path": "/ai/Ai4Chat?text=",
+      "auth": false,
+      "status": "online"
+    },
+    {
+      "name": "Lirik generator",
+      "desc": "Buat lirik lagu dengan cepat",
+      "path": "/ai/lirikgenerator?text=",
+      "auth": false,
+      "status": "online"
+    }
+  ], 
+  "Maker": [
+    {
+      "name": "Brat Generator",
+      "desc": "Buat stiker teks gaya Brat secara instan.",
+      "path": "/maker/brat?text=",
+      "auth": true,
+      "status": "online",
+      "note": "Gunakan teks pendek agar hasil maksimal."
+    }
+  ],
+  "Search": [
+    {
+      "name": "Cari lirik",
+      "desc": "Cari lirik lagu secara cepat",
+      "path": "/search/lirik?q=",
+      "auth": false,
+      "status": "online"
+    }
+  ]
+}
