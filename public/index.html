@@ -15,7 +15,7 @@
             min-height: 100vh;
         }
 
-        h1, h2, h3, .method-get, .btn-try, .btn-execute {
+        h1, h2, h3, .method-get, .method-post, .btn-try, .btn-execute {
             font-family: 'Space Grotesk', sans-serif;
         }
         
@@ -40,7 +40,6 @@
             animation: spin 1s linear infinite;
         }
 
-        /* Spinner kecil untuk tombol */
         .btn-spinner {
             width: 14px;
             height: 14px;
@@ -96,6 +95,17 @@
             text-align: center;
         }
 
+        .method-post {
+            background-color: #fbbf24;
+            color: white;
+            font-weight: 800;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            min-width: 55px;
+            text-align: center;
+        }
+
         .btn-try {
             font-size: 10px;
             font-weight: 800;
@@ -111,27 +121,58 @@
             color: white;
         }
 
+        .response-container {
+            background: #0f172a;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #334155;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+        .response-header {
+            background: #1e293b;
+            padding: 10px 16px;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .response-body {
+            padding: 16px;
+            max-height: 400px;
+            overflow-y: auto;
+            overflow-x: hidden; 
+            font-family: 'Fira Code', 'Cascadia Code', monospace;
+            font-size: 11px;
+            line-height: 1.6;
+            background: #0f172a;
+        }
+        .response-body pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #49cc90;
+        }
+
         #toast-container {
             position: fixed;
-            bottom: 24px;
+            top: 24px;
             right: 24px;
-            z-index: 9999;
+            z-index: 10000;
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
         .toast {
-            animation: slideIn 0.3s ease-out forwards;
+            animation: slideInTop 0.3s ease-out forwards;
             min-width: 250px;
         }
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+        @keyframes slideInTop {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
 
         @media (max-width: 640px) {
             .api-card-get { gap: 8px; padding: 8px; }
-            .method-get { min-width: 45px; font-size: 9px; }
+            .method-get, .method-post { min-width: 45px; font-size: 9px; }
             .api-name { font-size: 11px !important; }
             .btn-try { padding: 3px 8px; font-size: 9px; }
         }
@@ -206,7 +247,7 @@
         <div class="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] border border-slate-200">
             <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-[#49cc90]/5">
                 <div class="flex items-center gap-3">
-                    <span class="method-get">GET</span>
+                    <span id="m-badge" class="method-get">GET</span>
                     <h2 id="m-name" class="font-bold text-slate-800 text-sm md:text-base leading-tight"></h2>
                 </div>
                 <button onclick="closeModal()" class="w-8 h-8 rounded-full hover:bg-red-50 hover:text-red-500 text-slate-400 transition-all flex items-center justify-center">
@@ -229,9 +270,41 @@
 
                 <div id="m-inputs" class="grid grid-cols-1 gap-4"></div>
 
+                <div class="mt-6">
+                    <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Code Examples</label>
+                    <div class="mt-2 bg-[#0f172a] rounded-xl overflow-hidden border border-slate-700 shadow-inner">
+                        <div class="flex border-b border-slate-800 bg-slate-900/50">
+                            <button onclick="switchTab('curl')" id="tab-curl" class="tab-btn px-4 py-2.5 text-[10px] font-black tracking-widest transition-all">CURL</button>
+                            <button onclick="switchTab('js')" id="tab-js" class="tab-btn px-4 py-2.5 text-[10px] font-black tracking-widest transition-all">JAVASCRIPT</button>
+                            <button onclick="switchTab('python')" id="tab-python" class="tab-btn px-4 py-2.5 text-[10px] font-black tracking-widest transition-all">PYTHON</button>
+                            <div class="flex-1"></div>
+                            <button onclick="copySnippet()" class="px-4 text-slate-500 hover:text-[#49cc90] transition-colors">
+                                <i id="snippet-copy-icon" class="fa-regular fa-paste text-xs"></i>
+                            </button>
+                        </div>
+                        <div class="p-4">
+                            <pre id="code-snippet" class="text-[#49cc90] font-mono text-[10px] whitespace-pre-wrap break-all leading-relaxed"></pre>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="m-result" class="hidden space-y-2">
                     <label class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Server Response</label>
-                    <div id="res-content"></div>
+                    <div class="response-container">
+                        <div class="response-header">
+                            <div id="m-stats" class="text-[10px] font-bold text-white flex gap-3"></div>
+                            <div class="flex gap-3">
+                                <button onclick="copyRawResponse()" title="Copy JSON" class="text-slate-400 hover:text-white transition-colors">
+                                    <i class="fa-regular fa-clone text-[12px]"></i>
+                                </button>
+                                <button onclick="downloadResponse()" title="Download Response" class="text-slate-400 hover:text-white transition-colors">
+                                    <i class="fa-solid fa-download text-[12px]"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="res-content" class="response-body custom-scroll">
+                            </div>
+                    </div>
                 </div>
             </div>
 
@@ -244,7 +317,11 @@
 
     <script>
         let config = {};
-        let currentPath = "", currentParams = [], currentAuth = false;
+        let currentPath = "", currentParams = [], currentAuth = false, currentMethod = "GET";
+        let activeTab = 'curl';
+        let lastResponseData = null;
+        let lastResponseType = 'json';
+        let lastImageObjectURL = null;
 
         function showToast(msg, type = 'success') {
             const container = document.getElementById('toast-container');
@@ -253,10 +330,7 @@
             const iconClass = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle';
             
             toast.className = `toast ${colorClass} text-white px-5 py-3 rounded-xl shadow-lg flex items-center gap-3`;
-            toast.innerHTML = `
-                <i class="fa-solid ${iconClass}"></i>
-                <span class="text-xs font-bold tracking-wide">${msg}</span>
-            `;
+            toast.innerHTML = `<i class="fa-solid ${iconClass}"></i><span class="text-xs font-bold tracking-wide">${msg}</span>`;
             
             container.appendChild(toast);
             setTimeout(() => {
@@ -270,29 +344,32 @@
             try {
                 const res = await fetch('/api/docs-data');
                 config = await res.json();
-                document.getElementById('brand').innerText = config.settings.api_name || 'API ape';
-                document.getElementById('api-type-badge').innerText = config.settings.api_type || 'APe UI';
-                document.getElementById('description-header').innerText = config.settings.description || 'Eksplorasi layanan API kami.';
-                document.getElementById('settings-footer').innerHTML = `Powered by <span class="text-[#49cc90] font-bold">${config.settings.owner}</span> | ${config.settings.footer}`;
+                
+                const settings = config.settings || {};
 
-                if (config.settings.use_profile && config.settings.owner_profile) {
+                document.getElementById('brand').innerText = settings.api_name || 'APe UI';
+                document.getElementById('api-type-badge').innerText = settings.api_type || 'REST API';
+                document.getElementById('description-header').innerText = settings.description || 'Eksplorasi layanan API kami.';
+                document.getElementById('settings-footer').innerHTML = `Powered by <span class="text-[#49cc90] font-bold">${settings.owner || 'Admin'}</span> | ${settings.footer || ''}`;
+
+                if (settings.use_profile && settings.owner_profile) {
                     const profileImg = document.getElementById('owner-img');
                     const profileCont = document.getElementById('profile-container');
                     const defaultLogo = document.getElementById('default-logo');
-
-                    profileImg.src = config.settings.owner_profile;
+                    profileImg.src = settings.owner_profile;
                     profileCont.classList.remove('hidden');
                     defaultLogo.classList.add('hidden');
                 }
-                render();
 
+                render();
+                
                 setTimeout(() => {
                     const loader = document.getElementById('page-loader');
                     loader.style.opacity = '0';
                     setTimeout(() => loader.style.display = 'none', 500);
                 }, 1000);
-
             } catch (e) {
+                console.error("Fetch Error:", e);
                 document.getElementById('app-content').innerHTML = `<p class="text-center text-red-500 py-20 font-bold">Gagal sinkronisasi data server.</p>`;
                 document.getElementById('page-loader').style.display = 'none';
             }
@@ -302,7 +379,6 @@
             const content = document.getElementById(`content-${categoryId}`);
             const btn = document.getElementById(`btn-toggle-${categoryId}`);
             const icon = document.getElementById(`icon-${categoryId}`);
-            
             if (isOpen) {
                 content.classList.add('active');
                 btn.innerText = 'CLOSE';
@@ -348,12 +424,13 @@
                     const isOnline = ep.status === 'online';
                     const statusColor = isOnline ? 'text-green-500' : (ep.status === 'maintenance' ? 'text-orange-500' : 'text-red-500');
                     const searchTerms = `${ep.name} ${ep.path} ${ep.desc}`.toLowerCase();
+                    const methodClass = ep.method === 'POST' ? 'method-post' : 'method-get';
                     
                     html += `
                         <div class="api-card-get group cursor-pointer ${!isOnline ? 'opacity-60 grayscale-[0.5]' : ''}" 
                              onclick="${isOnline ? `openTry('${category}', '${ep.name}')` : "showToast('Endpoint sedang offline', 'error')"}" 
                              data-search="${searchTerms}">
-                            <span class="method-get">GET</span>
+                            <span class="${methodClass}">${ep.method || 'GET'}</span>
                             <div class="flex-1 min-w-0">
                                 <h3 class="api-name font-mono font-bold text-slate-800 text-[13px] truncate">
                                     ${ep.path.split('?')[0]} ${ep.auth ? '<i class="fa-solid fa-lock text-amber-500 text-[10px] ml-1"></i>' : ''}
@@ -406,124 +483,223 @@
                 icon.className = "fa-solid fa-check";
                 showToast("URL Endpoint disalin!");
                 setTimeout(() => icon.className = "fa-regular fa-copy", 2000);
-            } catch (err) {
-                showToast("Gagal menyalin URL", "error");
+            } catch (err) { showToast("Gagal menyalin URL", "error"); }
+        }
+
+        function switchTab(tab) {
+            activeTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('text-[#49cc90]', 'border-b-2', 'border-[#49cc90]', 'bg-white/5');
+                btn.classList.add('text-slate-500');
+            });
+            const activeBtn = document.getElementById(`tab-${tab}`);
+            activeBtn.classList.add('text-[#49cc90]', 'border-b-2', 'border-[#49cc90]', 'bg-white/5');
+            activeBtn.classList.remove('text-slate-500');
+            generateSnippet();
+        }
+
+        function generateSnippet() {
+            const url = document.getElementById('m-url').value;
+            const pre = document.getElementById('code-snippet');
+            const method = currentMethod;
+            const payload = {};
+            if(currentAuth) payload.apikey = "YOUR_API_KEY";
+            currentParams.forEach(p => {
+                const val = document.getElementById(`in-${p.name}`)?.value || "value";
+                payload[p.name] = val;
+            });
+
+            if (activeTab === 'curl') {
+                if(method === 'POST') pre.innerText = `curl -X POST "${url}" \\\n     -H "Content-Type: application/json" \\\n     -d '${JSON.stringify(payload)}'`;
+                else pre.innerText = `curl -X GET "${url}"`;
+            } else if (activeTab === 'js') {
+                if(method === 'POST') pre.innerText = `fetch("${url}", {\n  method: "POST",\n  headers: { "Content-Type": "application/json" },\n  body: JSON.stringify(${JSON.stringify(payload, null, 2)})\n})\n.then(res => res.json())\n.then(console.log);`;
+                else pre.innerText = `fetch("${url}")\n  .then(res => res.json())\n  .then(data => console.log(data));`;
+            } else if (activeTab === 'python') {
+                if(method === 'POST') pre.innerText = `import requests\n\nurl = "${url}"\npayload = ${JSON.stringify(payload, null, 4)}\nresponse = requests.post(url, json=payload)\nprint(response.json())`;
+                else pre.innerText = `import requests\n\nurl = "${url}"\nresponse = requests.get(url)\nprint(response.json())`;
+            }
+        }
+
+        async function copySnippet() {
+            const text = document.getElementById('code-snippet').innerText;
+            const icon = document.getElementById('snippet-copy-icon');
+            try {
+                await navigator.clipboard.writeText(text);
+                icon.className = "fa-solid fa-check text-[#49cc90]";
+                showToast("Snippet berhasil disalin!");
+                setTimeout(() => icon.className = "fa-regular fa-paste text-xs", 2000);
+            } catch (e) { showToast("Gagal menyalin snippet", "error"); }
+        }
+
+        async function copyRawResponse() {
+            if(!lastResponseData && !lastImageObjectURL) return;
+            try {
+                const textToCopy = lastResponseType === 'image' ? lastImageObjectURL : JSON.stringify(lastResponseData, null, 2);
+                await navigator.clipboard.writeText(textToCopy);
+                showToast("Data disalin ke clipboard!");
+            } catch(e) { showToast("Gagal menyalin", "error"); }
+        }
+
+        function downloadResponse() {
+            if (lastResponseType === 'image' && lastImageObjectURL) {
+                const a = document.createElement("a");
+                a.href = lastImageObjectURL;
+                a.download = `api_result_${Date.now()}.png`;
+                a.click();
+                showToast("Gambar berhasil diunduh!");
+            } else if (lastResponseData) {
+                const blob = new Blob([JSON.stringify(lastResponseData, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `response_${Date.now()}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast("File JSON berhasil diunduh!");
             }
         }
 
         function openTry(category, name) {
             const ep = config.endpoints[category].find(x => x.name === name);
-            currentPath = ep.path.includes('?') ? ep.path.split('?')[0] : ep.path;
+            currentPath = ep.path.split('?')[0];
             currentAuth = ep.auth;
-            const paramMatch = ep.path.match(/[?&]([^=&]+)=/g);
-            currentParams = paramMatch ? paramMatch.map(p => p.replace(/[?&=]/g, '')) : [];
+            currentMethod = ep.method || "GET";
+            currentParams = ep.params || [];
             
+            lastResponseData = null;
+            lastResponseType = 'json';
+            lastImageObjectURL = null;
+
             document.getElementById('modal').classList.remove('hidden');
-            document.getElementById('m-name').innerHTML = `
-                <div class="flex flex-col">
-                    <span class="text-slate-800">${ep.name}</span>
-                    <span class="text-[10px] font-medium text-slate-500 normal-case italic">(${ep.desc})</span>
-                </div>
-            `;
+            const badge = document.getElementById('m-badge');
+            badge.innerText = currentMethod;
+            badge.className = currentMethod === 'POST' ? 'method-post' : 'method-get';
+            
+            document.getElementById('m-name').innerHTML = `<div class="flex flex-col"><span class="text-slate-800">${ep.name}</span><span class="text-[10px] font-medium text-slate-500 italic">(${ep.desc})</span></div>`;
             document.getElementById('m-result').classList.add('hidden');
+            document.getElementById('m-stats').innerHTML = "";
             
             const noteContainer = document.getElementById('m-note-container');
-            noteContainer.innerHTML = ep.note ? `
-                <div class="p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-                    <div class="flex items-center gap-2 mb-1">
-                        <i class="fa-solid fa-circle-info text-blue-500 text-[10px]"></i>
-                        <span class="text-[9px] font-black text-blue-500 uppercase tracking-widest">Catatan / Note</span>
-                    </div>
-                    <p class="text-[11px] text-blue-700 font-medium leading-relaxed">${ep.note}</p>
-                </div>` : "";
+            noteContainer.innerHTML = ep.note ? `<div class="p-3 bg-blue-50 rounded-lg border-l-4 border-blue-400"><p class="text-[11px] text-blue-700 font-medium">${ep.note}</p></div>` : "";
 
             const inputContainer = document.getElementById('m-inputs');
             inputContainer.innerHTML = `<p class="text-[10px] font-bold text-slate-500 border-b border-slate-100 pb-2 mb-2 uppercase tracking-widest">Parameters</p>`;
             
             if(ep.auth) {
                 inputContainer.innerHTML += `
-                    <div class="space-y-1.5">
-                        <label class="text-[10px] font-mono font-bold text-amber-600 uppercase">apikey (Wajib)</label>
-                        <input type="text" id="in-apikey" oninput="updateURL()" placeholder="Masukkan apikey Anda..." class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-xs focus:border-amber-500 outline-none transition-all">
+                    <div class="space-y-1.5 mb-4 group">
+                        <div class="flex items-center">
+                            <label class="text-[10px] font-mono font-bold text-amber-600 uppercase">apikey</label>
+                            <span class="bg-amber-100 text-amber-600 text-[9px] px-1.5 py-0.5 rounded-md border border-amber-200 ml-2 flex items-center gap-1">
+                                <i class="fa-solid fa-key text-[8px]"></i> WAJIB
+                            </span>
+                        </div>
+                        <input type="text" id="in-apikey" data-required="true" oninput="updateURL()" placeholder="Masukkan apikey..." 
+                        class="param-input w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-xs outline-none transition-all focus:border-amber-400 focus:ring-2 focus:ring-amber-100">
                     </div>`;
             }
 
             currentParams.forEach(p => {
+                const isReq = p.required !== false;
+                const pText = p.placeholder || "Isi parameter...";
+                
+                const badgeHtml = isReq 
+                    ? `<span class="bg-red-100 text-red-600 text-[9px] px-1.5 py-0.5 rounded-md border border-red-200 ml-2">WAJIB</span>`
+                    : `<span class="bg-slate-100 text-slate-500 text-[9px] px-1.5 py-0.5 rounded-md border border-slate-200 ml-2">OPSIONAL</span>`;
+
                 inputContainer.innerHTML += `
-                    <div class="space-y-1.5">
-                        <label class="text-[10px] font-mono font-bold text-slate-600 uppercase">${p}</label>
-                        <input type="text" id="in-${p}" oninput="updateURL()" placeholder="Isi parameter..." class="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-xs focus:border-[#49cc90] outline-none transition-all">
+                    <div class="space-y-1.5 group">
+                        <div class="flex items-center">
+                            <label class="text-[10px] font-mono font-bold text-slate-600 uppercase tracking-tighter">
+                                ${p.name}
+                            </label>
+                            ${badgeHtml}
+                        </div>
+                        <div class="relative">
+                            <input type="text" 
+                                   id="in-${p.name}" 
+                                   data-name="${p.name}" 
+                                   data-required="${isReq}" 
+                                   oninput="updateURL()" 
+                                   placeholder="${pText}" 
+                                   class="param-input w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-xs outline-none transition-all focus:border-[#49cc90] focus:ring-2 focus:ring-[#49cc90]/10 placeholder:text-slate-300">
+                            <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity">
+                                <i class="fa-solid fa-pen-to-square text-[10px] text-[#49cc90]"></i>
+                            </div>
+                        </div>
                     </div>`;
             });
+            
             updateURL();
+            switchTab('curl');
 
             document.getElementById('run-btn').onclick = async () => {
                 const btn = document.getElementById('run-btn');
                 const resDiv = document.getElementById('res-content');
                 const resContainer = document.getElementById('m-result');
-                const apiKeyInput = document.getElementById('in-apikey');
+                const statsDiv = document.getElementById('m-stats');
 
-                if (currentAuth && (!apiKeyInput || !apiKeyInput.value.trim())) {
-                    apiKeyInput.classList.add('border-red-500', 'bg-red-50');
-                    apiKeyInput.focus();
-                    showToast("Harap isi API Key terlebih dahulu!", "error");
-                    return;
-                } else if (apiKeyInput) {
-                    apiKeyInput.classList.remove('border-red-500', 'bg-red-50');
-                }
+                let missing = [];
+                document.querySelectorAll('.param-input').forEach(inp => {
+                    const isRequired = inp.getAttribute('data-required') === "true";
+                    if(isRequired && !inp.value.trim()) {
+                        missing.push(inp.id.replace('in-', ''));
+                        inp.classList.add('border-red-500', 'bg-red-50');
+                    } else {
+                        inp.classList.remove('border-red-500', 'bg-red-50');
+                    }
+                });
 
-                // Efek loading pada tombol dan area hasil
+                if(missing.length > 0) { showToast(`Isi parameter wajib: ${missing.join(', ')}`, "error"); return; }
+
                 btn.disabled = true;
                 btn.innerHTML = `<span class="btn-spinner mr-2"></span> EXECUTING...`;
-                
                 resContainer.classList.remove('hidden');
-                resDiv.innerHTML = `
-                    <div class="w-full flex flex-col items-center justify-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-300">
-                        <div class="loader-ring !w-8 !h-8 !border-2 mb-3"></div>
-                        <p class="text-[10px] font-bold text-slate-400 animate-pulse uppercase tracking-widest">Menunggu Respon Server...</p>
-                    </div>
-                `;
+                resDiv.innerHTML = `<div class="flex flex-col items-center justify-center py-10 text-slate-400"><div class="loader-ring !w-6 !h-6 !border-2 mb-3 !border-t-[#49cc90]"></div><p class="text-[9px] uppercase font-bold tracking-widest animate-pulse">Requesting...</p></div>`;
+                
+                const startTime = performance.now();
                 
                 try {
-                    const response = await fetch(document.getElementById('m-url').value);
-                    const contentType = response.headers.get("content-type");
-                    
-                    if (response.status === 401 || response.status === 403) {
-                        showToast("API Key salah atau tidak valid!", "error");
-                        if(apiKeyInput) apiKeyInput.classList.add('border-red-500');
-                        throw new Error(`Akses Ditolak: API Key tidak valid (${response.status})`);
+                    let fetchUrl = document.getElementById('m-url').value;
+                    let options = { method: currentMethod };
+
+                    if (currentMethod === 'POST') {
+                        fetchUrl = window.location.origin + currentPath;
+                        const bodyData = {};
+                        if(currentAuth) bodyData.apikey = document.getElementById('in-apikey').value;
+                        currentParams.forEach(p => {
+                            const val = document.getElementById(`in-${p.name}`).value;
+                            if(val) bodyData[p.name] = val;
+                        });
+                        options.headers = { 'Content-Type': 'application/json' };
+                        options.body = JSON.stringify(bodyData);
                     }
 
-                    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+                    const response = await fetch(fetchUrl, options);
+                    const duration = (performance.now() - startTime).toFixed(0);
+                    const contentType = response.headers.get("content-type");
+                    
+                    let statusColor = response.status >= 400 ? "text-red-400" : "text-[#49cc90]"; 
+                    statsDiv.innerHTML = `<span class="flex items-center gap-1.5"><i class="fa-solid fa-circle text-[6px] ${statusColor}"></i> STATUS: ${response.status}</span><span class="flex items-center gap-1.5"><i class="fa-regular fa-clock text-[10px] text-indigo-400"></i> ${duration}ms</span>`;
 
                     if (contentType && contentType.includes("image")) {
                         const blob = await response.blob();
-                        resDiv.innerHTML = `<div class="rounded-xl overflow-hidden shadow-lg border border-slate-200 bg-white p-2">
-                            <img src="${URL.createObjectURL(blob)}" class="w-full h-auto rounded-lg">
-                        </div>`;
-                        showToast("Gambar berhasil dimuat!");
+                        lastResponseType = 'image';
+                        lastImageObjectURL = URL.createObjectURL(blob);
+                        resDiv.innerHTML = `<img src="${lastImageObjectURL}" class="max-w-full h-auto rounded-lg mx-auto shadow-lg">`;
+                        showToast("Gambar diterima!");
                     } else {
                         const data = await response.json();
-                        if (data.status === false || data.error) {
-                            showToast(data.message || "Gagal mendapatkan data", "error");
-                        } else {
-                            showToast("Data berhasil diterima!");
-                        }
-                        resDiv.innerHTML = `
-                            <div class="w-full rounded-xl bg-[#0f172a] p-4 text-[#49cc90] shadow-inner border border-slate-800 overflow-x-auto">
-                                <pre class="whitespace-pre-wrap break-all text-[10px] font-mono leading-relaxed">${JSON.stringify(data, null, 2)}</pre>
-                            </div>`;
+                        lastResponseData = data;
+                        lastResponseType = 'json';
+                        resDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                        if (!response.ok) showToast("Error: " + response.status, "error");
+                        else showToast("Berhasil!");
                     }
                 } catch(e) { 
-                    resDiv.innerHTML = `
-                        <div class="w-full rounded-xl bg-red-50 p-5 text-red-600 border border-red-200 font-mono text-[10px] leading-relaxed">
-                            <div class="flex items-center gap-2 mb-2">
-                                <i class="fa-solid fa-circle-xmark"></i>
-                                <strong class="uppercase">Execution Error</strong>
-                            </div>
-                            ${e.message}
-                        </div>`;
-                    if (!e.message.includes("Akses Ditolak")) showToast("Gagal mengeksekusi request", "error"); 
+                    resDiv.innerHTML = `<span class="text-red-400 font-mono">Error: ${e.message}</span>`;
+                    showToast("Gagal eksekusi", "error"); 
                 } finally { 
                     btn.innerHTML = "Execute"; 
                     btn.disabled = false; 
@@ -538,10 +714,18 @@
                 if(ak) q.append('apikey', ak);
             }
             currentParams.forEach(p => {
-                const val = document.getElementById('in-'+p).value;
-                if(val) q.append(p, val);
+                const input = document.getElementById('in-'+p.name);
+                const val = input ? input.value : "";
+                if(val) q.append(p.name, val);
             });
-            document.getElementById('m-url').value = window.location.origin + currentPath + (q.toString() ? '?' + q.toString() : '');
+
+            let finalURL = window.location.origin + currentPath;
+            if (currentMethod === 'GET') {
+                const qs = q.toString();
+                if(qs) finalURL += '?' + qs;
+            }
+            document.getElementById('m-url').value = finalURL;
+            generateSnippet();
         }
 
         function closeModal() { document.getElementById('modal').classList.add('hidden'); }
