@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Changelog</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        html, body { 
+            height: 100%; 
+            overflow: hidden; 
+            font-family: 'Inter', sans-serif; 
+            background: #f8fafc;
+        }
+
+        body { display: flex; flex-direction: column; }
+
+        main { 
+            flex: 1; 
+            overflow-y: auto; 
+            padding-bottom: 2rem;
+            scroll-behavior: smooth;
+        }
+
+        main::-webkit-scrollbar { width: 4px; }
+        main::-webkit-scrollbar-track { background: transparent; }
+        main::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        .timeline-line::before {
+            content: ''; position: absolute; left: 16px; top: 0; bottom: 0;
+            width: 2px; background: linear-gradient(to bottom, #49cc90, #e2e8f0);
+        }
+
+        .changelog-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            width: 100%;
+            margin: 0 auto;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+        }
+
+        .dot-indicator {
+            width: 8px; height: 8px; background: #49cc90;
+            border: 2px solid white; box-shadow: 0 0 8px rgba(73, 204, 144, 0.5);
+            z-index: 10; left: 13px;
+        }
+
+        .note-item {
+            display: flex; gap: 6px; font-size: 11px;
+            line-height: 1.5; color: #475569;
+        }
+
+        .pulse-latest {
+            animation: pulse-mini 2s infinite;
+        }
+        @keyframes pulse-mini {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased">
+
+    <nav class="bg-[#0f172a] p-3 shadow-md z-50">
+        <div class="max-w-5xl mx-auto flex justify-between items-center px-4">
+            <a href="/" class="flex items-center gap-2 text-white hover:opacity-80 transition-all">
+                <i class="fa-solid fa-chevron-left text-[9px] bg-[#49cc90] p-1.5 rounded-full text-white shadow-sm"></i>
+                <span class="font-bold text-xs uppercase tracking-tighter">Kembali</span>
+            </a>
+
+            <div class="flex items-center gap-2 bg-[#49cc90]/10 px-2.5 py-1 rounded-full border border-[#49cc90]/20">
+                <span class="relative flex h-1.5 w-1.5">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#49cc90] opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#49cc90]"></span>
+                </span>
+                <span class="text-[8px] text-[#49cc90] font-black tracking-[0.1em] uppercase">Changelog</span>
+            </div>
+        </div>
+    </nav>
+
+    <header class="py-6 px-4 bg-white border-b border-slate-100 shadow-sm">
+        <div class="max-w-5xl mx-auto flex flex-col items-center">
+            <h2 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-3">Apa yang baru?</h2>
+
+            <div class="inline-flex items-center border border-slate-200 rounded-md bg-slate-50 shadow-sm overflow-hidden scale-90 sm:scale-100">
+                <div class="px-3 py-1.5 flex items-center gap-2 border-r border-slate-200">
+                    <span class="text-[8px] text-slate-400 font-bold uppercase tracking-tighter">Total Update</span>
+                    <span id="total-versions" class="text-xs font-black text-[#49cc90]">--</span>
+                </div>
+                <div class="px-3 py-1.5 flex items-center gap-2 bg-white">
+                    <span class="text-[8px] text-slate-400 font-bold uppercase tracking-tighter">Versi terbaru</span>
+                    <span id="current-v" class="text-xs font-black text-slate-900">--</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="w-full">
+        <div class="max-w-5xl mx-auto px-4 mt-6">
+            <div id="changelog-container" class="relative timeline-line space-y-6 pb-6">
+                <div class="flex justify-center py-10">
+                    <i class="fa-solid fa-arrows-rotate fa-spin text-[#49cc90] text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="w-full p-4 text-center border-t border-slate-200 bg-white z-50">
+        <p id="footer-text" class="text-slate-400 text-[9px] font-bold uppercase tracking-[0.2em]"></p>
+    </footer>
+
+    <script>
+        async function loadChangelog() {
+            try {
+                const res = await fetch('/api/docs-data');
+                const data = await res.json();
+                const logs = data.settings.changelog || [];
+                const container = document.getElementById('changelog-container');
+                const footer = document.getElementById('footer-text');
+
+                if(data.settings.footer) footer.innerText = data.settings.footer;
+                document.getElementById('total-versions').innerText = logs.length;
+
+                const latestWithVersion = logs.find(l => l.version && l.version !== "");
+                if(latestWithVersion) {
+                    document.getElementById('current-v').innerText = 'v' + latestWithVersion.version;
+                } else if (logs.length > 0) {
+                    document.getElementById('current-v').innerText = 'Latest';
+                }
+
+                if (logs.length === 0) {
+                    container.innerHTML = `<p class="text-center text-slate-400 py-10 text-[9px] uppercase font-black tracking-widest">Data Tidak Ditemukan</p>`;
+                    return;
+                }
+
+                const typeConfig = {
+                    add: { icon: "fa-rocket", color: "text-blue-500", label: "Fitur Baru" },
+                    fix: { icon: "fa-bug-slash", color: "text-rose-500", label: "Perbaikan" },
+                    security: { icon: "fa-shield-halved", color: "text-indigo-500", label: "Keamanan" },
+                    update: { icon: "fa-arrows-rotate", color: "text-emerald-500", label: "Pembaruan" }
+                };
+
+                container.innerHTML = logs.map((log, index) => {
+                    const hasVersion = log.version && log.version.trim() !== "";
+
+                    return `
+                    <div class="relative pl-8">
+                        <div class="absolute top-2.5 dot-indicator rounded-full"></div>
+                        <div class="changelog-card shadow-sm border ${index === 0 ? 'border-[#49cc90]/40 ring-4 ring-emerald-500/5' : 'border-slate-200'}">
+                            
+                            <div class="flex items-center justify-between mb-3 border-b border-slate-50 pb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="bg-slate-900 text-[#49cc90] text-[9px] px-2 py-0.5 rounded font-black italic shadow-sm">
+                                        ${hasVersion ? 'v' + log.version : 'UPDATE'}
+                                    </span>
+                                    ${index === 0 ? `<span class="pulse-latest bg-[#49cc90] text-white text-[7px] px-1.5 py-0.5 rounded-full font-black uppercase tracking-tighter shadow-sm">Terbaru</span>` : ''}
+                                </div>
+                                <div class="flex items-center gap-1 text-slate-400 opacity-70">
+                                    <i class="fa-solid fa-calendar-day text-[9px]"></i>
+                                    <span class="text-[8px] font-bold tracking-tight">${log.date}</span>
+                                </div>
+                            </div>
+
+                            <div class="space-y-4">
+                                ${log.notes.map(note => {
+                                    const noteText = typeof note === 'object' ? note.text : note;
+                                    const noteType = typeof note === 'object' ? note.type : 'add';
+                                    const conf = typeConfig[noteType] || typeConfig.update;
+                                    
+                                    return `
+                                        <div>
+                                            <div class="flex items-center gap-1.5 mb-1.5">
+                                                <i class="fa-solid ${conf.icon} ${conf.color} text-[10px]"></i>
+                                                <span class="text-[7px] font-black uppercase text-slate-300 tracking-wider">${conf.label}</span>
+                                            </div>
+                                            <div class="note-item pl-3 border-l-2 border-slate-100 ml-1">
+                                                <span class="text-[#49cc90] font-black">•</span>
+                                                <span class="font-semibold tracking-tight text-slate-600">${noteText}</span>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `}).join('');
+            } catch (err) {
+                container.innerHTML = `<p class="text-center py-10 text-[9px] font-bold text-red-400 tracking-widest uppercase">Gagal Memuat Database</p>`;
+            }
+        }
+        loadChangelog();
+    </script>
+</body>
+</html>
